@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/yegor256/tacit@gh-pages/tacit-css-1.9.1.min.css">
+    <title>Gene Info</title>
+    <style>
+        .gene-info {
+            border: 1px solid #ccc;
+            padding: 15px;
+            border-radius: 5px;
+            max-width: 600px;
+        }
+        .gene-info h3 {
+            margin-top: 0;
+        }
+        .positions {
+            display: flex;
+            justify-content: space-between;
+        }
+        .positions div {
+            flex: 1;
+            margin-right: 10px;
+            text-align: center;
+        }
+        .positions div:last-child {
+            margin-right: 0;
+        }
+        p {
+            padding-left : 2rem;
+        }
+        kbd {
+            background-color: lightgray;
+            color: dimgray;
+        }
+        input {
+            border: 1px solid #ccc;
+            border-radius: 4px;
+        }
+        label {
+            font-weight: bold;
+            padding-right: 2rem;
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <h1>{{row["Associated_Gene_Name"]}} <kbd> {{ row["Ensembl_Gene_ID"] }} </kbd></h1>
+    </header>
+    <section>
+        <h2>Gene Information - Edit</h2>
+        <fieldset class="gene-info">
+            <form method="POST">
+            <div class="gene_flexx">
+                <label for="chromosome_name">Chromosome Name</h3>
+                <input name="chromosome_name" value="{{ row['Chromosome_Name'] }}" id="Chromosome_Name" size="25" placeholder="Nom du Chromosome"/>
+            </div>
+            <div class="gene_flexx">
+                <label for="band">Band</h3>
+                <input name="band" value="{{ row['Band'] }}" id="Band" size="25" placeholder="Band"/>
+            </div>
+            <div class="gene_flexx">
+                <label for="strand">Strand</h3>
+                <input name="strand" value="{{ row['Strand'] }}" id="Strand
+" size="25" placeholder="Strand"/>
+            </div>
+            <div class="positions">
+                <label for="gene-start">Start Position</h3>
+                <input name="gene-start" value="{{ row['Gene_Start'] }}" id="Gene_Start
+" size="25" placeholder="Start Position"/>
+                <label for="gene-end">End Position</h3>
+                <input name="gene-end" value="{{ row['Gene_End'] }}" id="Gene_End
+" size="25" placeholder="End Position"/>
+            </div>
+        <button type="submit">Sauvegarder</button>
+        <button type="reset" onclick="history.back()">Annuler</button>
+        </form>
+    </fieldset>
+        </div>
+    </section>
+</body>
+</html>

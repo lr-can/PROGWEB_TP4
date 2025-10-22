@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/yegor256/tacit@gh-pages/tacit-css-1.9.1.min.css">
+    <style>
+        kbd {
+            background-color: lightgray;
+            color: dimgray;
+        }
+    </style>
+    <title>Index</title>
+</head>
+<body>
+    <header>
+        <h1>TP4 - Parts ({{ part }})</h1>
+        <nav>
+            <dl>
+                {% for row in rows %}
+                    <li><a href="{{url_for('gene_by_id', gene_id=row['Ensembl_Gene_ID'])}}"> {{ row["Associated_gene_name"] }}  <kbd>{{ row["Ensembl_Gene_ID"] }}</kbd></a></li>
+                {% endfor %}
+            </dl>
+        </nav>
+    </header>
+</body>
+</html>

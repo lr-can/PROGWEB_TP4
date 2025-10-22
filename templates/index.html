@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/yegor256/tacit@gh-pages/tacit-css-1.9.1.min.css">
+    <title>Index</title>
+</head>
+<body>
+    <header>
+        <h1>TP4</h1>
+        <nav>
+            <dl>
+                {% for row in rows %}
+                    <li><a href="{{url_for('genes_by_part', part=row['Atlas_Organism_Part'])}}">{{ row["Atlas_Organism_Part"] }}</a></li>
+                {% endfor %}
+            </dl>
+        </nav>
+    </header>
+</body>
+</html>

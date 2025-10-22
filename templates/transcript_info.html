@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/yegor256/tacit@gh-pages/tacit-css-1.9.1.min.css">
+    <title>Gene Info</title>
+    <style>
+        .gene-info {
+            border: 1px solid #ccc;
+            padding: 15px;
+            border-radius: 5px;
+            max-width: 600px;
+        }
+        .gene-info h3 {
+            margin-top: 0;
+        }
+        .positions {
+            display: flex;
+            justify-content: space-between;
+        }
+        .positions div {
+            flex: 1;
+            margin-right: 10px;
+            text-align: center;
+        }
+        .positions div:last-child {
+            margin-right: 0;
+        }
+        p {
+            padding-left : 2rem;
+        }
+        kbd {
+            background-color: lightgray;
+            color: dimgray;
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <h1>Transcript <kbd> {{ row["Ensembl_Transcript_ID"] }} </kbd></h1>
+    </header>
+    <section>
+        <h2>Transcript Information</h2>
+        <div class="gene-info">
+            <div class="positions">
+                <h3>Start Position</h3>
+                <div>{{ row["Transcript_Start"] }}</div>
+                <h3>End Position</h3>
+                <div>{{ row["Transcript_End"] }}</div>
+            </div>
+            <div class="gene_flexx">
+                <h3>Biotype</h3>
+                <p>{{ row["Transcript_Biotype"] }}</p>
+            </div>
+        </div>
+    </section>
+    <section>
+        <h2> Gene </h2>
+        <div class="gene-info">
+            <h3><a href="{{url_for('gene_by_id', gene_id=row['Ensembl_Gene_ID'])}}"> <kbd> {{ row["Ensembl_Gene_ID"] }} </kbd></a></h3>
+            <p><em>Click on the link to get more info on the gene.</em></p>
+        </div>
+    </section>
+    <section>
+        <h2> Parties d'organismes reliés </h2>
+        <div class="gene-info">
+            <ul>
+                {% for part in parts %}
+                    <li>
+                        <a href="{{url_for('genes_by_part', part=part['Atlas_Organism_Part'])}}">{{ part["Atlas_Organism_Part"] }}</a>
+                    </li>
+                {% endfor %}
+            </ul>
+    </section>
+</body>
+</html>

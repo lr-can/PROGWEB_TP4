@@ -1,0 +1,59 @@
+Bootstrap: docker
+From: python:3.10-slim
+
+%labels
+    Author Lorcan BRENDERS
+    Version 1.0
+
+%help
+    Singularity definition to build an image that contains all files from the build
+    directory under /srv/app, installs matplotlib, flask and sqlite3 support and
+    runs server.py when the container is run. The container is configured so the
+    application can write runtime files (data/templates/logs) under /srv/app.
+
+%post
+    set -eux
+
+    # Install system dependencies needed by matplotlib and sqlite
+    apt-get update
+    DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
+        build-essential gcc g++ git ca-certificates \
+        libsqlite3-dev libfreetype6-dev libpng-dev pkg-config \
+        && rm -rf /var/lib/apt/lists/*
+
+    # Ensure pip is up-to-date and install Python deps
+    pip install --no-cache-dir --upgrade pip
+    pip install --no-cache-dir matplotlib flask
+
+    # Create app directory and writable locations for runtime (templates, db, logs, tmp)
+    mkdir -p /srv/app
+    mkdir -p /srv/app/data /srv/app/tmp /srv/app/logs /srv/app/templates
+    # Allow the runtime user to write into these directories
+    chmod -R a+rX /srv/app
+    chmod -R a+rwX /srv/app/data /srv/app/tmp /srv/app/logs /srv/app/templates
+
+%files
+    . /srv/app
+
+%environment
+    export PYTHONUNBUFFERED=1
+    export APP_HOME=/srv/app
+    export PATH=/usr/local/bin:$PATH
+
+%runscript
+    # Run server.py from a writable runtime copy of the application to avoid writing into
+    # the read-only container image (SQLite needs a writable database file).
+    # Create a temporary writable copy under /tmp and run from there.
+    TMP_APP=/tmp/srv_app_run
+    rm -rf "${TMP_APP}"
+    mkdir -p "${TMP_APP}"
+    cp -a "${APP_HOME}/." "${TMP_APP}/"
+    export APP_HOME="${TMP_APP}"
+    cd "${APP_HOME}" || exit 1
+
+    # Ensure runtime dirs exist and are writable
+    mkdir -p data tmp logs templates
+    chmod -R a+rwX data tmp logs templates || true
+
+    # Run server with unbuffered stdout/stderr
+    exec python3 -u server.py

@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/yegor256/tacit@gh-pages/tacit-css-1.9.1.min.css">
+    <title>Gene Info</title>
+    <style>
+        .gene-info {
+            border: 1px solid #ccc;
+            padding: 15px;
+            border-radius: 5px;
+            max-width: 600px;
+        }
+        .gene-info h3 {
+            margin-top: 0;
+        }
+        .positions {
+            display: flex;
+            justify-content: space-between;
+        }
+        .positions div {
+            flex: 1;
+            margin-right: 10px;
+            text-align: center;
+        }
+        .positions div:last-child {
+            margin-right: 0;
+        }
+        p {
+            padding-left : 2rem;
+        }
+        kbd {
+            background-color: lightgray;
+            color: dimgray;
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <h1>{{row["Associated_Gene_Name"]}} <kbd> {{ row["Ensembl_Gene_ID"] }} </kbd></h1>
+        <button type="submit" onclick="window.location.href += '/edit'">Edit</button>
+    </header>
+    <section>
+        <h2>Gene Information</h2>
+        <div class="gene-info">
+            <div class="gene_flexx">
+                <h3>Chromosome Name</h3>
+                <p>{{ row["Chromosome_Name"] }}</p>
+            </div>
+            <div class="gene_flexx">
+                <h3>Band</h3>
+                <p>{{ row["Band"] }}</p>
+            </div>
+            <div class="gene_flexx">
+                <h3>Strand</h3>
+                <p>{{ row["Strand"] }}</p>
+            </div>
+            <div class="positions">
+                <h3>Start Position</h3>
+                <div>{{ row["Gene_Start"] }}</div>
+                <h3>End Position</h3>
+                <div>{{ row["Gene_End"] }}</div>
+            </div>
+        </div>
+    </section>
+    <section>
+        <h2> Transcripts </h2>
+        <div>
+            <object data="{{ url_for('gene_transcripts_svg',gene_id=row['Ensembl_Gene_ID']) }}" type="image/svg+xml"></object>
+        </div>
+        <div class="gene-info">
+            <ul>
+                {% for transcrit in transcrits %}
+                    <li>
+                        <a href="{{ url_for('transcript_by_id', transcript_id=transcrit['Ensembl_Transcript_ID']) }}"></a>
+                            <strong>{{ transcrit["Ensembl_Transcript_ID"] }}</strong>
+                        </a> - Position <b>{{ transcrit["Transcript_Start"] }}</b> à <b>{{ transcrit["Transcript_End"] }}</b>
+                    </li>
+                {% endfor %}
+            </ul>
+        </div>
+    </section>
+    <section>
+        <h2> Parties d'organismes reliés </h2>
+        <img src="{{ url_for('gene_parts_plot', gene_id=row['Ensembl_Gene_ID']) }}" alt="Graph of parts" height="300" width="auto"/>
+        <div class="gene-info">
+            <ul>
+                {% for part in parts %}
+                    <li>
+                        <a href="{{ url_for('genes_by_part', part=part['Atlas_Organism_Part']) }}">{{ part["Atlas_Organism_Part"] }}</a>
+                    </li>
+                {% endfor %}
+            </ul>
+    </section>
+</body>
+</html>

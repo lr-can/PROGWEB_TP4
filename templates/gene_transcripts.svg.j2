@@ -1,0 +1,32 @@
+<svg xmlns="http://www.w3.org/2000/svg"
+     width="{{ width }}" height="{{ height }}"
+     viewBox="0 0 {{ width }} {{ height }}">
+    <style>
+        .gene_id_label{
+            opacity: 0;
+            transition: all 0.3s ease;
+        }
+        .rectangle:hover + .gene_id_label{
+            opacity: 1;
+        }
+        .gene_id_label:hover{
+            opacity: 1;
+        }
+        {% for color in colors %}
+        a:nth-of-type({{ colors|length }}n + {{ loop.index }}) > rect {
+          fill: {{ color }};
+        }
+        {% endfor %}
+        {% for color in colors_text %}
+        a:nth-of-type({{ colors_text|length }}n + {{ loop.index }}) > text {
+          fill: {{ color }};
+        }
+        {% endfor %}
+    </style>
+  {% for c in coordinates %}
+    <a href="/transcripts/{{ c.id_tr }}" target="_blank">
+    <rect x="{{ c.x }}" y="{{ c.y }}" width="{{ c.w }}" height="20" fill="#dde5ff" class="rectangle"/>
+    <text x="{{ c.x + 4 }}" y="{{ c.y + 15 }}" font-size="12" fill="#0078f3" class="gene_id_label">{{ c.id_tr }}</text>
+    </a>
+  {% endfor %}
+</svg>
