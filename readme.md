@@ -22,8 +22,6 @@ pip install flask requests matplotlib
 python3 server.py
 ```
 
-Adjust FLASK_APP or the python command to match your project entrypoint.
-
 ## Build & run with Singularity
 Download Singularity/Apptainer (installation instructions): https://apptainer.org/
 
