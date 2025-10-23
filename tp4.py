@@ -3,12 +3,13 @@ import sqlite3
 import sql_requests
 from matplotlib.figure import Figure
 import matplotlib.pyplot as plt
+import tp7 as api # which contains additional API functions
+import math
 
 import io
 
 
 app = flask.Flask(__name__)
-
 
 
 @app.route('/')
@@ -265,3 +266,187 @@ def gene_transcripts_svg(gene_id):
     svg = flask.render_template('gene_transcripts.svg.j2',
                           width=width_px, height=height, coordinates=coordinates, colors=colors, colors_text=colors_text)
     return flask.Response(svg, mimetype="image/svg+xml")
+
+
+"""
+23 / 10 / 2025 - API Web additions (TP7)
+"""
+
+@app.route("/api/demo")
+def api_demo():
+    """
+    API endpoint for demo purposes.
+    Returns a JSON response with basic data.
+    No parameters.
+    Returns:
+        A Flask JSON response object containing basic data.
+    Raises:
+        None.
+    Side effects:
+        None.
+    """
+
+    return flask.jsonify({"AA": 124})
+
+@app.route("/api/genes/<gene_id>", methods=["GET"])
+def api_gene_by_id(gene_id):
+    """
+    API endpoint to fetch gene information by gene ID.
+    Utilizes the tp7.gene_by_id function to retrieve data.
+    Parameters:
+        gene_id (str): The gene identifier used to fetch information.
+    Returns:
+        A Flask JSON response object containing gene information, transcripts,
+        and parts data.
+    Raises:
+        None.
+    Side effects:
+        None.
+    """
+
+    info = api.gene_by_id(gene_id)
+
+    if info is None:
+        return flask.jsonify({"error": "Gene not found"}), 404
+    
+    info["href"] = flask.url_for('api_gene_by_id', gene_id=gene_id)
+    return flask.jsonify(info)
+
+# Pour aller plus loin : PUT method
+@app.route("/api/genes/<gene_id>", methods=["PUT"])
+def api_edit_gene_by_id(gene_id):
+    """
+    Edit or create a gene by its ID via API.
+    Utilizes the tp7.edition_gene function to handle gene editing or creation.
+    Parameters:
+        gene_id (str): The gene identifier used to edit or create the gene.
+    Body:
+        JSON object containing gene data with required fields:
+        - Ensemble_Gene_ID (str)
+        - Chromosome_Name (str)
+        - Band (str)
+        - Gene_Start (int)
+        - Gene_End (int)
+        Optional fields:
+        - Strand (int)
+        - Associated_Gene_Name (str)
+    Returns:
+        A Flask JSON response object indicating success or failure.
+    Raises:
+        None.
+    """
+    resp_code = api.edition_gene("update", flask.request.get_json(), gene_id=gene_id)
+    if resp_code == 200:
+        return flask.jsonify({"edited": flask.url_for('api_gene_by_id', gene_id=gene_id)}), 200
+    elif resp_code == 201:
+        return flask.jsonify({"created": flask.url_for('api_gene_by_id', gene_id=gene_id)}), 201
+    elif resp_code == 400:
+        return flask.jsonify({"error": "Bad Request"}), 400
+    elif resp_code == 404:
+        return flask.jsonify({"error": "Not Found - Gene ID does not exist"}), 404
+    else:
+        return flask.jsonify({"error": "Internal Server Error"}), 500
+
+
+# End pour aller plus loin
+
+@app.route("/api/genes")
+def api_collection_of_genes():
+    """
+    API endpoint to fetch a collection of genes with pagination.
+    Utilizes the tp7.collection_of_genes function to retrieve data.
+    Query Parameters:
+        offset (int, optional): The offset for pagination. Defaults to 0 if not provided.
+    Returns:
+        A Flask JSON response object containing a list of gene information.
+    Raises:
+        None.
+    Side effects:
+        None.
+    """
+    
+    offset = flask.request.args.get("offset", default=0, type=int)
+    # Could also add a length parameter to limit the number of returned rows
+
+    rows = api.collection_of_genes(offset)
+    for row in rows:
+        row["href"] = flask.url_for('api_gene_by_id', gene_id=row["Ensembl_Gene_ID"])
+    
+    # Pour aller plus loin : now json object
+    new_json = {
+        "items": rows,
+        "first": offset + 1,
+        "last": offset + len(rows),
+        "prev": flask.url_for('api_collection_of_genes', offset=max(0, offset - 100)),
+        "next": flask.url_for('api_collection_of_genes', offset=offset + 100)
+    }
+
+    return flask.jsonify(new_json)
+
+@app.route("/api/genes/edit", methods=["POST", "DELETE"])
+def api_edition_gene():
+    """
+    API endpoint to create or delete a gene.
+    Utilizes the tp7.edition_gene function to handle gene creation or deletion.
+    Request Body:
+        For POST requests (creation):
+            JSON object containing gene data with required fields:
+            - Ensemble_Gene_ID (str)
+            - Chromosome_Name (str)
+            - Band (str)
+            - Gene_Start (int)
+            - Gene_End (int)
+            Optional fields:
+            - Strand (int)
+            - Associated_Gene_Name (str)
+        For DELETE requests (deletion):
+            JSON object containing:
+            - Ensemble_Gene_ID (str)
+    Returns:
+        A Flask JSON response object indicating success or failure.
+    Raises:
+        None.
+    Side effects:
+        May create or delete a gene in the database.
+    """
+    if flask.request.method == "POST":
+        data = flask.request.get_json()
+        resp_code = api.edition_gene("new", data)
+        if resp_code == 201:
+            if type(data) is dict:
+                return flask.jsonify({"created": flask.url_for('api_gene_by_id', gene_id=data["Ensemble_Gene_ID"])}), 201
+            # Pour aller plus loin
+            if type(data) is list:
+                created_urls = [flask.url_for('api_gene_by_id', gene_id=gene["Ensemble_Gene_ID"]) for gene in data]
+                return flask.jsonify(
+                    {"created": created_urls,
+                     "bulks_count": math.ceil(len(created_urls)/100)}
+                    ), 201
+        elif resp_code == 400:
+            return flask.jsonify({"error": "Bad Request"}), 400
+        elif resp_code == 409:
+            return flask.jsonify({"error": "Conflict - Gene ID already exists"}), 409
+        
+        else:
+            return flask.jsonify({"error": "Internal Server Error"}), 500
+        
+    elif flask.request.method == "DELETE":
+        data = flask.request.get_json()
+        resp_code = api.edition_gene("delete", data)
+
+        # Note : according to the indications, we should return 200 even if the gene did not exist
+        if resp_code == 200:
+            return flask.jsonify({"deleted": data["Ensemble_Gene_ID"]}), 200
+        elif resp_code == 400:
+            return flask.jsonify({"error": "Bad Request"}), 400
+        elif resp_code == 404:
+            return flask.jsonify({"error": "Not Found - Gene ID does not exist"}), 404 
+        else:
+            return flask.jsonify({"error": "Internal Server Error"}), 500
+        
+    # Pour aller plus loin : PUT
+    elif flask.request.method == "PUT":
+        return flask.jsonify({"error": "Not Implemented"}), 501
+        
+    # If method is neither POST nor DELETE
+    return flask.jsonify({"error": "Method Not Allowed"}), 405

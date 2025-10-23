@@ -72,6 +72,11 @@ def fetch_gene_by_id(gene_id):
     WHERE g.ensembl_gene_id = ?
                    """, (gene_id,))
     row = cursor.fetchone()
+
+    if row is None: # case where gene_id does not exist
+        conn.close()
+        return None, None, None
+    
     cursor.execute("""
         SELECT *
     FROM Transcripts as t
@@ -200,3 +205,158 @@ def plot_gene_parts(gene_id):
     conn.close()
     rows = {row['atlas_organism_part']: row['count'] for row in rows}
     return rows
+
+def fetch_collection_of_genes(offset=0):
+    """
+    Fetches a collection of distinct genes and their associated names with pagination.
+    Args:
+        offset (int): The offset for pagination.
+    Returns:
+        list of sqlite3.Row: A list of rows containing distinct gene information and their
+            associated names.
+    """
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    cursor.execute("""
+        SELECT DISTINCT *
+    FROM Genes as g
+    ORDER BY g.ensembl_gene_id
+    LIMIT 100 OFFSET ?
+                   """, (offset,))
+    rows = cursor.fetchall()
+    conn.close()
+    return rows
+
+def check_gene_exists(ensembl_gene_id):
+    """
+    Checks if a gene with the given Ensembl gene ID exists in the database.
+    Args:
+        ensembl_gene_id (str): The Ensembl gene ID to check.
+    Returns:
+        bool: True if the gene exists, False otherwise.
+    """
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    cursor.execute("""
+        SELECT 1
+    FROM Genes
+    WHERE ensembl_gene_id = ?
+                   """, (ensembl_gene_id,))
+    row = cursor.fetchone()
+    conn.close()
+    return row is not None
+
+def insert_new_gene(ensembl_gene_id, chromosome_name, band, gene_start, gene_end, strand=None, associated_gene_name=None):
+    """
+    Inserts a new gene into the database.
+    Args:
+        ensembl_gene_id (str): The Ensembl gene ID.
+        chromosome_name (str): The chromosome name.
+        band (str): The band.
+        gene_start (int): The start position of the gene.
+        gene_end (int): The end position of the gene.
+        strand (int, optional): The strand. Defaults to None.
+        associated_gene_name (str, optional): The associated gene name. Defaults to None.
+    Returns:
+        None
+    Raises:
+        sqlite3.IntegrityError: If the insertion violates database constraints.
+    """
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    cursor.execute("""
+        INSERT INTO Genes (ensembl_gene_id, chromosome_name, band, gene_start, gene_end, strand, associated_gene_name)
+    VALUES (?, ?, ?, ?, ?, ?, ?)
+                   """, (
+                       ensembl_gene_id,
+                       chromosome_name,
+                       band,
+                       gene_start,
+                       gene_end,
+                       strand,
+                       associated_gene_name
+                   ))
+    conn.commit()
+    conn.close()
+    return
+
+# Pour aller plus loin
+
+def insert_bulk_new_genes(genes_data):
+    """
+    Inserts multiple new genes into the database in bulk.
+    Args:
+        genes_data (list of dict): A list of dictionaries, each containing gene data with required fields:
+            - "Ensemble_Gene_ID" (str)
+            - "Chromosome_Name" (str)
+            - "Band" (str)
+            - "Gene_Start" (int)
+            - "Gene_End" (int)
+            Optional fields:
+            - "Strand" (int)
+            - "Associated_Gene_Name" (str)
+    Returns:
+        None
+    Raises:
+        sqlite3.IntegrityError: If any insertion violates database constraints.
+    """
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    gene_tuples = []
+    for gene in genes_data:
+        gene_tuples.append((
+            gene["Ensemble_Gene_ID"],
+            gene["Chromosome_Name"],
+            gene["Band"],
+            gene["Gene_Start"],
+            gene["Gene_End"],
+            gene.get("Strand"),
+            gene.get("Associated_Gene_Name")
+        ))
+    cursor.executemany("""
+        INSERT INTO Genes (ensembl_gene_id, chromosome_name, band, gene_start, gene_end, strand, associated_gene_name)
+    VALUES (?, ?, ?, ?, ?, ?, ?)
+                   """, gene_tuples)
+    conn.commit()
+    conn.close()
+    return
+
+# End pour aller plus loin
+
+def delete_gene(ensembl_gene_id):
+    """
+    Deletes a gene from the database based on the given Ensembl gene ID.
+    Args:
+        ensembl_gene_id (str): The Ensembl gene ID of the gene to be deleted.
+    Returns:
+        None
+    """
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    cursor.execute("""
+        DELETE FROM Genes
+    WHERE ensembl_gene_id = ?
+                   """, (ensembl_gene_id,))
+    conn.commit()
+    conn.close()
+    return
+
+def update_gene(ensembl_gene_id, chromosome_name, band, gene_start, gene_end, strand=None, associated_gene_name=None):
+    conn = get_db_connection()
+    cur = conn.cursor()
+    cur.execute(
+        """
+        UPDATE Genes
+        SET Chromosome_Name = ?,
+            Band = ?,
+            Gene_Start = ?,
+            Gene_End = ?,
+            Strand = ?,
+            Associated_Gene_Name = ?
+        WHERE ensembl_gene_id = ?
+        """,
+        (chromosome_name, band, gene_start, gene_end, strand, associated_gene_name, ensembl_gene_id)
+    )
+    conn.commit()
+    conn.close()
+    return
